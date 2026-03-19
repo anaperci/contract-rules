@@ -23,9 +23,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+IS_VERCEL = bool(os.environ.get("VERCEL"))
 SKILL_ROOT = Path(__file__).resolve().parent.parent
 RULES_FILE = SKILL_ROOT / "references" / "rules_schema.md"
-EXTRACTIONS_FILE = SKILL_ROOT / "api" / "extractions.json"
+
+# On Vercel, writable storage is /tmp only
+_TMP_RULES = Path("/tmp/rules_schema.md")
+_TMP_EXTRACTIONS = Path("/tmp/extractions.json")
+
+if IS_VERCEL:
+    EXTRACTIONS_FILE = _TMP_EXTRACTIONS
+    if not _TMP_RULES.exists() and RULES_FILE.exists():
+        _TMP_RULES.write_text(RULES_FILE.read_text(encoding="utf-8"), encoding="utf-8")
+    RULES_FILE = _TMP_RULES
+else:
+    EXTRACTIONS_FILE = SKILL_ROOT / "api" / "extractions.json"
 
 
 def _load_extractions() -> list:
